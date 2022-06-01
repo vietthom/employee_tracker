@@ -86,8 +86,123 @@ const viewAllEmployees = async () => {
     }
 };
 
+const addEmployee = () => {
+    console.log('\n-----Add an Employee-----\n')
+    // prompt user for new employee first and last name
+    inquirer
+    .prompt([
+        {
+            type: 'input',
+            name: 'firstName',
+            message: `Please enter employee's first name:`,
+        },
+        {
+            type: 'input',
+            name: 'lastName',
+            message: `Please enter employee's last name:`,
+        },
+    ])
+    .then(answers => {
+        (async () => {
+            try {
+                // save the responses to an array
+                const newEmpFields = [answers.firstName, answers.lastName];
+                // get list of roles to aloow the user to select
+                // a role for this employee
+                const roleList = 'SELECT id, title FROM role;';
+                const [ result ] = await connection.query(roleList);
+                const role = result.map(({ title, id}) => ({ name: title, value: id }));
+                // prompt user to select a role for the new employee
+                inquirer 
+                .prompt([
+                    {
+                        type: 'list',
+                        name: 'role',
+                        message: 'Select a role for this employee:',
+                        choices: role,
+                    },
+                ])
+                .then(roleChoice => {
+                    try {
+                        // get selected role
+                        const role = roleChoice.role;
+                        // push role to new employee fields array
+                        newEmpFields.push(role);
+                        // insert new employee into employee table
+                        const addEmpSQL = 'INSERT INTO employee(firstName, lastName, role_id) VALUES(?, ?, ?);';
+                        connection.query(addEmpSQL, newEmpFields);
+                        console.log(`\n${answers.firstName} ${answers.lastName} has been sucessfully added.\n`);
+                        // call view all employees function to see that the new role has been added
+                        viewAllEmployees();
+                    } catch (error) {
+                        console.error(error);
+                    }
+                })
+            } catch (error) {
+                console.error(error);
+            }
+        })();
+    });
+};
 
+const updateEmpRole = async () => {
+    try {
+        console.log(`\n-----Add an Employee's Role-----\n`)
+        // git list of employees
+        const empSQL = "SELECT employee.id, employee.firstName, employee.lastName, role.title FROM employee LEFT JOIN role ON employee.role_id = role.id;";
+        const [ result ] = await connection.query(empSQL);
+        const employees = result.map(({ firstName, lastName, title, id }) => ({ name: `${firstName} ${lastName} ${title}`, value: id }));
+        
+        inquirer 
+        .prompt([
+            {
+                type: 'list',
+                name: 'employee',
+                message: `Which employee's role would you like to update?`,
+                choices: employees,
+            },
+        ])
+        .then(empChoice => {
+            (async () => {
+                // save respone to new employee array
+                const newEmpFields = [empChoice.employee];
+                const roleList = 'SELECT id, title FROM role;';
+                const [ result ] = await connection.query(roleList);
+                const role = result.map(({ title, id}) => ({ name: title, value: id }));
 
+                // prompt user to select a new role for the new employee
+                inquirer 
+                .prompt([
+                    {
+                        type: 'list',
+                        name: 'role',
+                        message: 'Select a role for this employee:',
+                        choices: role,
+                    },
+                ])
+                .then(roleChoice => {
+                    try {
+                        // get selected role
+                        const role = roleChoice.role;
+                        // push role to new employee fields array
+                        newEmpFields.unshift(role);
+                        console.log(newEmpFields);
+                        // update selected employee with new role
+                        const updateEmpSQL = 'UPDATE employee SET role_id = ? WHERE id = ?;';
+                        connection.query(updateEmpSQL, newEmpFields);
+                        console.log(`\nEmployee's role has been sucessfully updated.\n`);
+                        // call view all employees function to see that the new role has been added
+                        viewAllEmployees();
+                    } catch (error) {
+                        console.error(error);
+                    }
+                })
+            })();
+        });
+    } catch (error) {
+        console.error(error)
+    }
+};
 // const menu = () =>{
 //     inquirer.prompt([
 //         {
