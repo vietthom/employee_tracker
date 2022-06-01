@@ -63,6 +63,29 @@ const menu = () =>{
     });
 };
 
+const viewAllEmployees = async () => {
+    try {
+        const empSQL = `SELECT employee.id, 
+                            employee.firstName AS 'First Name', 
+                            employee.lastName AS 'Last Name', 
+                            role.id AS 'Role Id',
+                            role.title AS Title, 
+                            role.salary AS Salary, 
+                            department.name AS Department,
+                            CONCAT (manager.firstName, " ", manager.lastName) AS Manager
+                        FROM employee 
+                            LEFT JOIN role ON employee.role_id = role.id 
+                            LEFT JOIN department on role.department_id = department.id
+                            LEFT JOIN employee manager ON employee.manager_id = manager.id;`;
+        const [ employees ] = await connection.query(empSQL);
+        console.log('\n-----View All Employees-----\n')
+        console.table(employees);
+        options();
+    } catch (error) {
+        console.log(error);
+    }
+};
+
 
 
 // const menu = () =>{
